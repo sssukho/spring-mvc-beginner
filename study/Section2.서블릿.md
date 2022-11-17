@@ -596,3 +596,75 @@ String[] usernames = request.getParameterValues("username"); // 복수 파라미
 
 
 
+## HTTP 요청 데이터 - POST HTML Form
+
+이번에는 HTML의 Form을 사용해서 클라이언트에서 서버로 데이터를 전송해보자. 주로 회원 가입, 상품 주문 등에서 사용하는 방식이다.
+
+
+
+### 특징
+
+- content-type: `applictaion/x-www-form-urlencoded`
+
+- 메시지 바디에 쿼리 파라미터 형식으로 데이터를 전달한다. `username=hello&age=20`
+
+- src/main/webapp/basic/hello-form.html
+
+  ``` html
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Title</title>
+    </head>
+    
+    <body>
+      <form action="/request-param" method="post">
+        username: <input type="text" name="username" />
+        age:      <input type="text" name="age" />
+        <butotn type="submit">전송</butotn>
+      </form>
+    </body>
+  </html>
+  ```
+
+- 실행 => http://localhost:8080/basic/hello-form.html
+
+> [주의]
+>
+> 웹 브라우저가 결과를 캐시하고 있어서, 과거에 작성햇던 html 결과가 보이는 경우도 있다. 이 때는 웹 브라우저의 새로 고침을 직접 선택해주면 된다. 물론 서버를 재시작 하지 않아서 그럴 수도 있다.
+
+POST의 HTML Form 을 전송하면 웹 브라우저는 다음 형식으로 HTTP 메시지를 만든다. (웹 브라우저 개발자 모드 확인)
+
+- 요청 URL: http//localhost:8080/request-param
+- content-type: application/x-www-form-urlencoded
+- message body: username=hello&age=20
+
+
+
+`application/x-www-form-urlencoded` 형식은 앞서 GET 에서 살펴본 쿼리 파라미터 형식과 같다. 따라서 쿼리 파라미터 조회 메서드를 그대로 사용하면 된다.
+
+클라이언트(웹 브라우저) 입장에서는 두 방식에 차이가 있지만, 서버 입장에서는 둘의 형식이 동일하므로, `request.getParameter()` 로 편리하게 구분 없이 조회할 수 잇다.
+
+정리하면 `request.getParameter()` 는 GET URL 쿼리 파라미터 형식도 지원하고, POST HTML Form 형식도 둘 다 지원한다.
+
+> [참고]
+>
+> content-type은 HTTP 메시지 바디의 데이터 형식을 지정한다.
+>
+> GET URL 쿼리 파라미터 형식으로 클라이언트에서 서버로 데이터를 전달할 때는 HTTP 메시지 바디를 사용하지 않기 떄문에 content-type이 없다.
+>
+> POST HTML Form 형식으로 데이터를 전달하면 HTPT 메시지 바디에 해당 데이터를 포함해서 보내기 때문에 바디에 포함된 데이터가 어떤 형식인지 content-type 을 꼭 지정해야 한다. 이렇게 폼으로 데이터를 전송하는 형식을 `application/x-www-form-urlencoded` 라 한다.
+
+
+
+
+
+
+
+
+
+
+
+
+
