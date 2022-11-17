@@ -711,6 +711,264 @@ Postman을 사용해서 테스트 해보자.
 
 
 
+## HTTP 요청 데이터 - API 메시지 바디 - JSON
+
+- POST http://localhost:8080/request-body-json
+- content-type: application/json
+- message body: `{"username": "hello", "age": 20}`
+- 결과: `messageBody = {"username": "hello", "age": 20}`
+
+
+
+### JSON 형식 파싱 추가
+
+JSON 형식으로 파싱할 수 있게 HelloData 객체를 하나 생성하자.
+
+``` java
+package hello.servlet.basic;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class HelloData {
+    private String username;
+    private int age;
+}
+
+```
+
+``` java
+package hello.servlet.basic.request;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import hello.servlet.basic.HelloData;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.util.StreamUtils;
+
+@WebServlet(name = "requestBodyJsonServlet", urlPatterns = "/request-body-json")
+public class RequestBodyJsonServlet extends HttpServlet {
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        ServletInputStream inputStream = req.getInputStream();
+        String messageBody = StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
+        System.out.println("messageBody = " + messageBody);
+
+        HelloData helloData = objectMapper.readValue(messageBody, HelloData.class);
+        System.out.println("helloData.getUsername() = " + helloData.getUsername());
+        System.out.println("helloData.getAge() = " + helloData.getAge());
+
+        resp.getWriter().write("ok");
+    }
+}
+```
+
+- POST http://localhost:8080/request-body-json
+- content-type: application/json (Body -> raw, 가장 오른쪽엔서 JSON 선택)
+- message body: `{"username": "hello", "age": 20}`
+
+> [참고]
+>
+> JSON 결과를 파싱해서 사용할 수 있는 자바 객체로 변화니하려면 Jackson, Gson 같은 JSON 변환 라이브러리를 추가해서 사용해야 한다. 스프링 부트로 Spring MVC를 선택하면 기본으로 Jackson 라이브러리(ObjectMapper)를 함께 제공한다.
+
+> [참고]
+>
+> HTML form 데이터도 메시지 바디를 통해 전송되므로 직접 읽을 수 있다. 하지만 편리한 파라미터 조회 기능(request.getParameter(...)) 을 이미 제공하기 떄문에 파라미터 조회 기능을 사용하면 된다.
+
+
+
+
+
+## HttpServletResponse - 기본 사용법
+
+### HttpServletResponse 역할
+
+1. HTTP 응답 메시지 생성
+   - HTTP 응답코드 지정
+   - 헤더 생성
+   - 바디 생성
+2. 편의 기능 제공
+   - Content-Type, 쿠키, Redirect
+
+
+
+### HttpServletResponse 기본 사용법
+
+``` java
+package hello.servlet.basic.response;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet(name = "responseHeaderServlet", urlPatterns = "/response-header")
+public class ResponseHeaderServlet extends HttpServlet {
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // [status-line]
+        resp.setStatus(HttpServletResponse.SC_OK); // 200
+
+        // [response-headers]
+        resp.setHeader("Content-Type", "text/plain;charset=utf-8");
+        resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        resp.setHeader("Pragma", "no-cache");
+        resp.setHeader("my-header", "hello");
+
+        // [Header 편의 메서드]
+        content(resp);
+        cookie(resp);
+        redirect(resp);
+
+        // [message body]
+        PrintWriter writer = resp.getWriter();
+        writer.println("ok");
+    }
+
+    private void content(HttpServletResponse response) {
+        // Content-Type: text/plain;charset=utf-8
+        // Content-Length: 2
+        // response.setHeader("Content-Type", "text/plain;charset=utf-8");
+        response.setContentType("text/plain");
+        response.setCharacterEncoding("utf-8");
+        // response.setContentLength(2); // 생략시 자동 생성
+    }
+
+    private void cookie(HttpServletResponse response) {
+        // Set-Cookie: myCookie=good; Max-Age = 600;
+        // response.setHeader("Set-Cookie", "myCookie=good; Max-Age=600");
+        Cookie cookie = new Cookie("myCookie", "good");
+        cookie.setMaxAge(600); // 600초
+        response.addCookie(cookie);
+    }
+
+    private void redirect(HttpServletResponse response) throws IOException {
+        // status code 302
+        // location: /basic/hello-form.html
+
+        // response.setStatus(HttpServletResponse.SC_FOUND); // 302
+        // response.setHeader("Location", "/basic/hello-form.html");
+        response.sendRedirect("/basic/hello-form.html");
+    }
+}
+```
+
+
+
+## HTTP 응답 데이터 - 단순 텍스트, HTML
+
+HTTP 응답 메시지는 주로 다음 내용을 담아서 전달한다.
+
+- 단순 텍스트 응답
+- HTML 응답
+- HTTP API - Message Body JSON 응답
+
+
+
+### HttpServletResponse - HTML 응답
+
+``` java
+package hello.servlet.basic.response;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet(name = "responseHtmlServlet", urlPatterns = "/response-html")
+public class ResponseHtmlServlet extends HttpServlet {
+    @Override
+    protected void service(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        //Content-Type: text/html;charset=utf-8
+        response.setContentType("text/html");
+        response.setCharacterEncoding("utf-8");
+        PrintWriter writer = response.getWriter();
+        writer.println("<html>");
+        writer.println("<body>");
+        writer.println(" <div>안녕?</div>");
+        writer.println("</body>");
+        writer.println("</html>");
+    }
+}
+```
+
+HTTP 응답으로 HTMl을 반환할 떄는 content-type을 `text/html` 로 지정해야 한다.
+
+- 실행: http://localhost:8080/response-html
+
+
+
+
+
+## HTTP 응답 데이터 - API JSON
+
+``` java
+package hello.servlet.basic.response;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import hello.servlet.basic.HelloData;
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet(name = "responseJsonServlet", urlPatterns = "/response-json")
+public class ResponseJsonServlet extends HttpServlet {
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+    
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // Content-Type: application/json
+        resp.setHeader("content-type", "application/json");
+        resp.setCharacterEncoding("utf-8");
+
+        HelloData data = new HelloData();
+        data.setUsername("kim");
+        data.setAge(20);
+        
+        // {"username": "kim", "age":20}
+        String result = objectMapper.writeValueAsString(data);
+        
+        resp.getWriter().write(result);
+    }
+}
+```
+
+HTTP 응답으로 JSON을 반환할 때는 content-type을 `application/json` 으로 지정해야 한다.
+
+Jackson 라이브러리가 제공하는 `objectMapper.writeValueAsString()` 를 사용하면 객체를 JSON 문자로 변경할 수 있다.
+
+- 실행: http://localhost:8080/response-json
+
+> [참고]
+>
+> `application/json` 은 스펙상 utf-8 형식을 사용하도록 정의되어 있다. 그래서 스펙에서 charset=utf-8 과 같은 추가 파라미터를 지원하지 않는다. 따라서 `application/json` 이라고만 사용해야지 `application/json;charset=utf-8` 이라고 전달하는 것은 의미없는 파라미터를 추가한 것이 된다. response.getWriter() 를 사용하면 추가 파라미터를 자동으로 추가해버린다. 이때는 response.getOutputStream()으로 출력하면 그런 문제가 없다.
+
+
+
+
 
 
 
