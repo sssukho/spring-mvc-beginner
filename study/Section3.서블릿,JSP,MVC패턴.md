@@ -506,7 +506,7 @@ implementation 'javax.servlet:jstl'
 	MemberRepository memberRepository = MemberRepository.getInstance();
 	System.out.println("save.jsp");
 	String username = request.getParameter("username");
-	int age = Integer.parseINt(request.getParameter("age"));
+	int age = Integer.parseInt(request.getParameter("age"));
 
 	Member member = new Member(username, age);
 	System.out.println("member = " +member);
@@ -604,3 +604,6 @@ JSP를 사용한 덕분에 뷰를 생성하는 HTML 작업을 깔끔하게 가�
 ### MVC 패턴의 등장
 
 비즈니스 로직은 서블릿처럼 다른곳에서 처리하고, JSP는 목적에 맞게 HTML로 화면(View)을 그리는 일에 집중하도록 하자. 과거 개발자들도 모두 비슷한 고민이 있었고, 그래서 MVC 패턴이 등장했다. 우리도 직접 MVC 패턴을 적용해서 프로젝트를 리팩토링 해보자.
+
+
+
