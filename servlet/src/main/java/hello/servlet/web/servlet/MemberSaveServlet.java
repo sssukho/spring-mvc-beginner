@@ -16,19 +16,20 @@ public class MemberSaveServlet extends HttpServlet {
     private MemberRepository memberRepository = MemberRepository.getInstance();
 
     @Override
-    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void service(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         System.out.println("MemberSaveServlet.service");
-        String username = req.getParameter("username");
-        int age = Integer.parseInt(req.getParameter("age"));
+        String username = request.getParameter("username");
+        int age = Integer.parseInt(request.getParameter("age"));
 
         Member member = new Member(username, age);
         System.out.println("member = " + member);
         memberRepository.save(member);
 
-        resp.setContentType("text/html");
-        resp.setCharacterEncoding("utf-8");
+        response.setContentType("text/html");
+        response.setCharacterEncoding("utf-8");
 
-        PrintWriter w = resp.getWriter();
+        PrintWriter w = response.getWriter();
         w.write("<html>\n" +
                 "<head>\n" +
                 " <meta charset=\"UTF-8\">\n" + "</head>\n" +
