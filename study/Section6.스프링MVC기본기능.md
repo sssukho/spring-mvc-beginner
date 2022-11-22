@@ -450,7 +450,170 @@ produces = "text/plain;charset=UTF-8"
 
 
 
+## 요청 매핑 - API 예시
 
+회원 관리를 HTTP API로 만든다 생각하고 매핑을 어떻게 하는지 알아보자. (실제 데이터가 넘어가는 부분은 생략하고 URL 매핑만)
+
+
+
+### 회원 관리 API
+
+- 회원 목록 조회 : GET    `/users`
+- 회원 등록     : POST   `/users`
+
+- 회원 조회     : GET    `/users`
+- 회원 수정     : PATCH  `/users`
+- 회원 삭제     : DELETE `/users`
+
+
+
+### MappingClassController
+
+``` java
+package hello.springmvc.basic.requestmapping;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/mapping/users")
+public class MappingClassController {
+    /**
+     * GET /mapping/users
+     */
+    @GetMapping
+    public String users() {
+        return "get users";
+    }
+
+    /**
+     * POST /mapping/users
+     */
+    @PostMapping
+    public String addUser() {
+        return "post user";
+    }
+
+    /**
+     * GET /mapping/users/{userId}
+     */
+    public String findUser(@PathVariable String userId) {
+        return "get userId=" + userId;
+    }
+
+    /**
+     * PATCH /mapping/users/{userId}
+     */
+    @PatchMapping("/{userId}")
+    public String updateUser(@PathVariable String userId) {
+        return "update userId=" + userId;
+    }
+
+    /**
+     * DELETE /mapping/users/{userId}
+     */
+    @DeleteMapping("/{userId}")
+    public String deleteUser(@PathVariable String userId) {
+        return "delete userId = " + userId;
+    }
+}
+```
+
+- `/mapping`: 는 강의의 다른 예제들과 구분하기 위해 사용했다.
+
+- `@RequestMapping("/mapping/users")`
+
+  - 클래스 레벨에 매핑 정보를 두면 메서드 레벨에서 해당 정보를 조합해서 사용한다.
+
+- Postman으로 테스트
+
+  - 회원 목록 조회 : GET    `/users`
+  - 회원 등록     : POST   `/users`
+
+  - 회원 조회     : GET    `/users`
+  - 회원 수정     : PATCH  `/users`
+  - 회원 삭제     : DELETE `/users`
+
+
+
+## HTTP 요청 - 기본, 헤더 조회
+
+어노테이션 기반의 스프링 컨트롤러는 다양한 파라미터를 지원한다.
+
+HTTP 헤더 정보를 조회하는 방법은 아래와 같다.
+
+``` java
+package hello.springmvc.basic.request;
+
+import java.util.Locale;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@Slf4j
+@RestController
+public class RequestHeaderController {
+
+    @RequestMapping("/headers")
+    public String headers(HttpServletRequest request,
+                          HttpServletResponse response,
+                          HttpMethod httpMethod,
+                          Locale locale,
+                          @RequestHeader MultiValueMap<String, String> headerMap,
+                          @RequestHeader("host") String host,
+                          @CookieValue(value = "myCookie", required = false) String cookie) {
+        log.info("request={}", request);
+        log.info("response={}", response);
+        log.info("httpMethod={}", httpMethod);
+        log.info("locale={}", locale);
+        log.info("headerMap={}", headerMap);
+        log.info("header host={}", host);
+        log.info("myCookie={}", cookie);
+
+        return "ok";
+    }
+}
+```
+
+- `HttpServletRequset`
+- `HttpServletResponse`
+- `HttpMethod`: HTTP 메서드를 조회한다.
+- `Locale`: Locale 정보를 조회한다.
+- `@RequestHeader MultiValueMap<String, String> headerMap` : 모든 HTTP 헤더를 MutliValueMap 형식으로 조회한다.
+- `@RequestHeader("host") String host` : 특정 HTTP 헤더를 조회한다.
+  - 속성
+    - 필수값 여부: `requrired`
+    - 기본값: `defaultValue`
+- `@CookieValue(Value = "myCookie", required = false) String cookie`: 특정 쿠키를 조회한다.
+  - 속성
+    - 필수 값 여부: `required`
+    - 기본값: `defaultValue`
+
+
+
+> [참고]
+>
+> MultiValueMap: MAP과 유사한데, 하나의 키에 여러 값을 받을 수 있다. HTTP header, HTTP 쿼리 파라미터와 같이 하나의 키에 여러 값을 받을 때 사용한다. (keyA=value1&keyA=value2)
+
+``` java
+MultiValueMap<String, String> map = new LinkedMultiValueMap();
+map.add("keyA", "value1");
+map.add("keyA", "value2");
+
+// [value1, value2]
+List<String> values = map.get("keyA");
+```
 
 
 
