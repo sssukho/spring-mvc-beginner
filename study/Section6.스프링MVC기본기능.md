@@ -205,7 +205,7 @@ logging.level.hello.springmvc=debug
 ### 올바른 로그 사용법
 
 - `log.debug("data="+data)`
-  - 로그 출력 레벨을 info 로 설정해도 해당 코드에 있는 "data="+data 가 실제 실행이 되어 버린다. 결과적으로 문자 더하기 연산이 발생한다.
+  - 로그 출력 레벨을 info 로 설정해도 해당 코드에 있는 "data="+data 가 실제 실행이 되어 버린다. 결과적으로 문자 더하기 연산이 발생한다. 따라서 사용하면 안된다.
 - `log.debug("data={}", data)`
   - 로그 출력 레벨을 info로 설정하면 아무일도 발생하지 않는다. 따라서 앞과 같은 의미없는 연산이 발생하지 않는다.
 
@@ -217,4 +217,254 @@ logging.level.hello.springmvc=debug
 - 로그 레벨에 따라 개발 서버에서는 모든 로그를 출력하고, 운영 서버에서는 출력하지 않는 등 로그를 상황에 맞게 조절할 수 있다.
 - 시스템 아웃 콘솔에만 출력하는 것이 아니라, 파일이나 네트워크 등 로그를 별도의 위치에 남길 수 있다. 특히 파일로 남길 때는 일별, 특정 용량에 따라 로그를 분할하는 것도 가능하다.
 - 성능도 일반 System.out 보다 좋다. (내부 버퍼링, 멀티 쓰레드 등등) 그래서 실무에서는 꼭 로그를 사용해야 한다.
+
+
+
+## 요청 매핑
+
+### MappingController
+
+``` java
+package hello.springmvc.basic.requestmapping;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@Slf4j
+@RestController
+public class MappingController {
+
+    /**
+     * 기본 요청
+     * 둘다 허용 /hello-basic, /hello-basic/
+     * HTTP 메서드 모두 허용 GET, HEAD, POST, PUT, PATCH, DELETE
+     */
+    @RequestMapping("/hello-basic")
+    public String helloBasic() {
+        log.info("helloBasic");
+        return "ok";
+    }
+}
+```
+
+- `@RestController`
+  - `@Controller` 는 반환 값이 String 이면 뷰 이름으로 인식된다. 그래서 뷰를 찾고 뷰가 렌더링 된다.
+  - `@RestController` 는 반환 값으로 뷰를 찾는 것이 아니라, HTTP 메시지 바디에 바로 입력한다. 따라서 실행 결과로 ok 메세지를 받을 수 있다. `@ResponseBody` 와 관련이 있다. (뒤에 더 자세히)
+- `@RequestMapping("/hello-basic")`
+  - `/hello-basic` URL 호출이 오면 이 메서드가 실행되도록 매핑한다.
+  - 대부분의 속성을 배열[] 로 제공하므로 다중 설정이 가능하다. `{"/hello-basic", "/hello-go"}`
+
+
+
+### HTTP 메서드 매핑
+
+``` java
+
+/**
+ * methodd 특정 HTTP 메서드 요청만 허용
+ * GET, HEAD, POST, PUT, PATCH, DELETE
+ */
+@RequestMapping(value = "/mapping-get-v1", method = RequestMethod.GET)
+public String mappingGetV1() {
+  log.info("mappingGetV1");
+  return "ok";
+}
+```
+
+만약 여기에 POST 요청을 하면 스프링 MVC는 HTTP 405 상태코드(Method Not Allowed)를 반환한다.
+
+### HTTP 메서드 매핑 축약
+
+``` java
+/**
+ * 편리한 축약 애노테이션 (코드보기)
+ * @GetMapping
+ * @PostMapping
+ * @PutMapping
+ * @DeleteMapping
+ * @PatchMapping
+ */
+@GetMapping(value = "/mapping-get-v2")
+public String mappingGetV2() {
+  log.info("mapping-get-v2");
+  return "ok";
+}
+```
+
+HTTP 메서드를 축약한 어노테이션을 사용하는 것이 더 직관적이다. 코드를 보면 내부에서 `@RequestMapping` 과 `method`를 지정해서 사용하는 것을 확인할 수 있다.
+
+
+
+### PathVariable(경로 변수) 사용
+
+``` java
+/**
+ * PathVariable 사용
+ * 변수명이 같으면 생략 가능
+ * @PathVariable("userId") String userId -> @PathVariable userId
+ */
+@GetMapping("/mapping/{userId}")
+public String mappingPath(@PathVariable("userId") String data) {
+  log.info("mappingPath userId={}", data);
+  return "ok";
+}
+```
+
+- 실행: http://localhost:8080/mapping/userA
+
+최근 HTTP API는 다음과 같이 리소스 경로에 식별자를 넣는 스타일을 선호한다.
+
+- `/mapping/userA`
+- `/users/1`
+- @RequestMapping 은 URL 경로를 템플릿화 할 수 있는데, `@PathVariable` 을 사용하면 매칭 되는 부분을 편리하게 조회할 수 있다.
+- @PathVariable 의 이름과 파라미터 이름이 같으면 생략할 수 있다.
+
+
+
+### PathVariable 사용 - 다중
+
+``` java
+/**
+ * PathVariable 다중 사용
+ */
+@GetMapping("/mapping/users/{userId}/orders/{orderId}")
+public String mappingPath(@PathVariable String userId, @PathVariable Long orderId) {
+    log.info("mappingPath userId={}, orderId={}", userId, orderId);
+    return "ok";
+}
+```
+
+- 실행: http://localhost:8080/mapping/users/userA/orders/100
+
+
+
+### 특정 파라미터 조건 매핑
+
+``` java
+/**
+ * 특정 헤더로 추가 매핑
+ * params = "mode"
+ * params = "!mode"
+ * params = "mode=debug"
+ * params = "mode!=debug" (! = )
+ * params = {"mode=debug", "data=good"}
+ */
+@GetMapping(value = "/mapping-param", params = "mode=debug")
+public String mappingParam() {
+  log.info("mappingParam");
+  return "ok";
+}
+```
+
+- 실행:  http://localhost:8080/mapping-param?mode=debug
+
+특정 파라미터가 있거나 없는 조건을 추가할 수 있다. 잘 사용하지는 않는다.
+
+
+
+### 특정 헤더 조건 매핑
+
+``` java
+/**
+ * 특정 헤더로 추가 매핑
+ * headers = "mode"
+ * headers = "!mode"
+ * headers = "mode=debug"
+ * headers = "mode!=debug" (! = )
+ */
+@GetMapping(value = "/mapping-header", headers = "mode=debug")
+public String mappingHeader() {
+  log.info("mappingHeader");
+  return "ok";
+}
+```
+
+파라미터 매핑과 비슷하지만, HTTP 헤더를 사용한다.
+
+Postman 으로 테스트 해야 한다.
+
+
+
+### 미디어 타입 조건 매핑 - HTTP 요청 Content-Type, consume
+
+``` java
+/**
+ * Content-Type 헤더 기반 추가 매핑 Media Type
+ * consumes="application/json"
+ * consumes="!application/json"
+ * consumes="application/*"
+ * consumes="*\/*"
+ * MediaType.APPLICAION_JSON_VALUE
+ */
+@PostMapping(value = "/mapping-consume", consumes = "application/json")
+public String mappingConsumes() {
+  log.info("mappingConsumes");
+  return "ok";
+}
+```
+
+Postman으로 테스트 해야 한다.
+
+HTTP 요청의 Content-Type 헤더를 기반으로 미디어 타입으로 매핑한다.
+
+만약 맞지 않으면 HTTP 415 상태코드(Unsupported Media Type)을 반환한다.
+
+```
+# 예시
+consumes = "text/plain"
+consumes = {"text/plain", "application/*"}
+consumes = MediaType.TEXT_PLAIN_VALUE
+```
+
+
+
+### 미디어 타입 조건 매핑 - HTTP 요청  Accept, produce
+
+``` java
+/**
+ * Accept 헤더 기반 Media Type
+ * produces = "text/html"
+ * produces = "!text/html"
+ * produces = "text/*"
+ * produces = "*\/*"
+ */
+@PostMapping(value = "/mapping-produce", produces = "text/html")
+public String mappingProduces() {
+  log.info("mappingProduces");
+  return "ok";
+}
+```
+
+HTTP 요청의 Accept 헤더를 기반으로 미디어 타입으로 매핑한다.
+
+만약 맞지 않으면 HTTP 406 상태코드(Not Acceptable)을 반환한다.
+
+```
+# 예시
+produces = "text/plain"
+produces = {"text/plain", "application/*"}
+produces = MediaType.TEXT_PLAIN_VALUE
+produces = "text/plain;charset=UTF-8"
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
