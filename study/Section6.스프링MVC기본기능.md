@@ -1726,7 +1726,7 @@ public interface HandlerMethodReturnValueHandler {
 
 ![6-4](./img/6-4.png)
 
-HTTP 메시지 컨버터를 사용하는 `@RequestBody` 도 컨트롤러가 필요로 하는 파라미터의 값에 사용된다. `@ResponseBody` 의 경우도 컨트롤러의 반환 값을 이용한다.
+HTTP 메시지 컨버터를 사용하는 `@RequestBody` 도 컨트롤러가 필요로 하는 파라미터의 값에 사용된다.(결국에는 ArgumentResolver가 해결해야 하는 것이다.) `@ResponseBody` 의 경우도 컨트롤러의 반환 값을 이용한다.
 
 - 요청의 경우
   - @RequestBody 를 처리하는 ArgumentResolver 가 있고, HttpEntity 를 처리하는 ArgumentResolver 가 있다. 이 ArgumentResolver 들이 HTTP 메시지 컨버터를 사용해서 필요한 객체를 생성하는 것이다.
@@ -1734,3 +1734,18 @@ HTTP 메시지 컨버터를 사용하는 `@RequestBody` 도 컨트롤러가 필�
   - @ResponseBody와 HttpEntity 를 처리하는 ReturnValueHandler 가 있따. 그리고 여기에서 HTTP 메시지 컨버터를 호출해서 응답 결과를 만든다.
 
 스프링 MVC는 @RequestBody, @ResponseBody 가 있으면 `RequestResponseBodyMethodProcessor(ArgumentResolver)`, HttpEntity 가 있으면 `HttpEntityMethodProcessor(AgrumentResolver)` 를 사용한다.
+
+
+
+### 확장
+
+스프링은 다음을 모두 인터페이스로 제공한다. 따라서 필요하면 언제든지 기능을 확장할 수 있다.
+
+- `HandlerMethodArgumentResolver`
+- `HandlerMethodReturnValueHandler`
+- `HttpMessageConverter`
+
+스프링이 필요한 대부분의 기능을 제공하기 때문에 실제 기능을 확장할 일이 많지는 않다. 기능 확장은 `WebMvcConfigurer` 를 상속 받아서 스프링 빈으로 등록하면 된다. 실제 자주 사용하지는 않으니 실제 기능 확장이 필요할 때 `WebMvcConfigurer` 를 검색해보자.
+
+
+
