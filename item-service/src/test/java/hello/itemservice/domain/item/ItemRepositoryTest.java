@@ -19,11 +19,10 @@ class ItemRepositoryTest {
     void save() {
         // given
         Item item = new Item("itemA", 10000, 10);
-
         // when
         Item savedItem = itemRepository.save(item);
-
         Item findItem = itemRepository.findById(item.getId());
+        // then
         assertThat(findItem).isEqualTo(savedItem);
     }
 
